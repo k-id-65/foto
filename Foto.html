@@ -1,327 +1,41 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Photo Booth</title>
+<title>Typing Effect</title>
 
 <style>
-html,body{
+body{
 margin:0;
-padding:0;
-height:100%;
-overflow:hidden;
-font-family:Segoe UI, sans-serif;
-background:#f4f4f4;
-}
-
-.container{
-padding:0 6%;
-height:100%;
-box-sizing:border-box;
-}
-
-.header{
-text-align:center;
-padding:15px 0;
-font-weight:600;
-font-size:20px;
-}
-
-button{
-padding:8px 18px;
-border:none;
-border-radius:20px;
-background:#111;
-color:white;
-cursor:pointer;
-margin:4px;
-}
-
-#startScreen{
-height:calc(100% - 50px);
+height:100vh;
 display:flex;
-flex-direction:column;
 justify-content:center;
 align-items:center;
-text-align:center;
-}
-
-/* CAMERA */
-#cameraScreen{display:none;}
-
-.camera-box{
-position:relative;
-width:100%;
-aspect-ratio:4/3;
-}
-
-video{
-width:100%;
-height:100%;
-object-fit:cover;
-border-radius:20px;
-}
-
-#timer{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-font-size:70px;
-font-weight:bold;
+background:black;
 color:white;
-text-shadow:0 0 20px rgba(0,0,0,0.7);
-}
-
-.bottom{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-top:10px;
-}
-
-.preview{
-display:flex;
-gap:5px;
-}
-
-.preview img{
-width:60px;
-height:75px;
-object-fit:cover;
-border-radius:8px;
-cursor:pointer;
-border:2px solid transparent;
-}
-
-.preview img.active{
-border:2px solid #111;
-}
-
-/* EDIT */
-#editScreen{
-display:none;
-text-align:center;
-}
-
-#finalPreview img{
-width:100%;
-max-width:300px;
-border-radius:15px;
-margin-top:15px;
+font-size:28px;
+font-family:monospace;
 }
 </style>
 </head>
+
 <body>
 
-<div class="container">
-<div class="header">Photo Booth</div>
-
-<!-- START -->
-<div id="startScreen">
-<h3>Akan mengambil 3 foto</h3>
-<p>Setiap foto menggunakan timer 3 detik</p>
-<button onclick="startBooth()">Mulai</button>
-</div>
-
-<!-- CAMERA -->
-<div id="cameraScreen">
-<div class="camera-box">
-<video id="video" autoplay playsinline></video>
-<div id="timer"></div>
-</div>
-
-<div class="bottom">
-<div class="preview" id="photoPreview"></div>
-<div>
-<button onclick="takePhoto()">Foto</button>
-<button onclick="retakePhoto()">Ulang</button>
-<button id="nextBtn" onclick="goEdit()" style="display:none;">Lanjutkan</button>
-</div>
-</div>
-</div>
-
-<!-- EDIT -->
-<div id="editScreen">
-<h3>Pilih Layout</h3>
-<button onclick="setLayout('vertical')">Vertical</button>
-<button onclick="setLayout('grid')">Grid</button>
-
-<h3>Pilih Frame</h3>
-<button onclick="setFrame('#111')">Black</button>
-<button onclick="setFrame('#c62828')">Red</button>
-<button onclick="setFrame('#d4af37')">Gold</button>
-
-<br><br>
-<button onclick="generatePreview()">Tampilkan</button>
-
-<div id="finalPreview"></div>
-</div>
-
-</div>
+<div id="typing"></div>
 
 <script>
+let text = "Selamat datang di website saya...";
+let i = 0;
 
-let video=document.getElementById("video");
-let photos=[];
-let selectedIndex=null;
-let selectedLayout="vertical";
-let selectedFrame="#111";
-let finalImageData=null;
-
-/* START CAMERA (FIX GITHUB PAGES) */
-async function startBooth(){
-document.getElementById("startScreen").style.display="none";
-document.getElementById("cameraScreen").style.display="block";
-
-try{
-const stream = await navigator.mediaDevices.getUserMedia({
-video:{
-facingMode:"user",
-width:{ideal:1280},
-height:{ideal:960},
-aspectRatio:4/3
-},
-audio:false
-});
-
-video.srcObject = stream;
-
-}catch(err){
-alert("Kamera tidak bisa diakses.\nPastikan:\n1. Menggunakan HTTPS\n2. Sudah klik Izinkan\n3. Tidak dibuka dari aplikasi lain");
-console.error(err);
+function ketik(){
+if(i < text.length){
+document.getElementById("typing").innerHTML += text.charAt(i);
+i++;
+setTimeout(ketik, 80);
 }
 }
 
-/* TIMER */
-function startTimer(callback){
-let timer=document.getElementById("timer");
-let count=3;
-timer.innerText=count;
-
-let interval=setInterval(()=>{
-count--;
-if(count>0){
-timer.innerText=count;
-}else{
-clearInterval(interval);
-timer.innerText="";
-callback();
-}
-},1000);
-}
-
-/* FOTO */
-function takePhoto(){
-if(photos.length>=3) return;
-
-startTimer(()=>{
-let canvas=document.createElement("canvas");
-canvas.width=video.videoWidth;
-canvas.height=video.videoHeight;
-canvas.getContext("2d").drawImage(video,0,0);
-photos.push(canvas.toDataURL("image/png"));
-updatePreview();
-
-if(photos.length===3){
-document.getElementById("nextBtn").style.display="inline-block";
-}
-});
-}
-
-/* PREVIEW */
-function updatePreview(){
-let preview=document.getElementById("photoPreview");
-preview.innerHTML="";
-photos.forEach((p,i)=>{
-preview.innerHTML+=`<img src="${p}" onclick="selectPhoto(${i})" id="img${i}">`;
-});
-}
-
-function selectPhoto(i){
-selectedIndex=i;
-document.querySelectorAll(".preview img").forEach(el=>el.classList.remove("active"));
-document.getElementById("img"+i).classList.add("active");
-}
-
-/* ULANG */
-function retakePhoto(){
-if(selectedIndex!==null){
-photos.splice(selectedIndex,1);
-selectedIndex=null;
-}else{
-photos.pop();
-}
-updatePreview();
-document.getElementById("nextBtn").style.display="none";
-}
-
-/* LANJUT */
-function goEdit(){
-if(photos.length<3) return;
-document.getElementById("cameraScreen").style.display="none";
-document.getElementById("editScreen").style.display="block";
-}
-
-function setLayout(l){selectedLayout=l;}
-function setFrame(f){selectedFrame=f;}
-
-/* GENERATE */
-function generatePreview(){
-
-let canvas=document.createElement("canvas");
-let ctx=canvas.getContext("2d");
-
-canvas.width=800;
-canvas.height=600;
-
-ctx.fillStyle=selectedFrame;
-ctx.fillRect(0,0,800,600);
-
-let imgs=photos.map(p=>{
-let img=new Image();
-img.src=p;
-return img;
-});
-
-Promise.all(imgs.map(img=>new Promise(res=>img.onload=res)))
-.then(()=>{
-
-if(selectedLayout==="vertical"){
-ctx.drawImage(imgs[0],50,40,700,160);
-ctx.drawImage(imgs[1],50,220,700,160);
-ctx.drawImage(imgs[2],50,400,700,160);
-}else{
-ctx.drawImage(imgs[0],50,100,220,400);
-ctx.drawImage(imgs[1],290,100,220,400);
-ctx.drawImage(imgs[2],530,100,220,400);
-}
-
-finalImageData=canvas.toDataURL("image/png");
-
-document.getElementById("finalPreview").innerHTML=`
-<img src="${finalImageData}">
-<br>
-<button onclick="downloadImage()">Unduh</button>
-`;
-});
-}
-
-/* DOWNLOAD */
-function downloadImage(){
-if(!finalImageData) return;
-let link=document.createElement("a");
-link.href=finalImageData;
-link.download="photobooth.png";
-link.click();
-}
-
-/* CHECK SUPPORT */
-if(!navigator.mediaDevices){
-alert("Browser tidak mendukung kamera");
-}
-
+ketik();
 </script>
+
 </body>
-    </html>
+</html>
